@@ -64,6 +64,7 @@ cd infra
 docker-compose up -d
 
 
+
 Wait for a few minutes for all health checks to pass.
 
 3. Snowflake Configuration
@@ -82,6 +83,7 @@ CREATE TABLE IF NOT EXISTS STOCKS_MDS.COMMON.BRONZE_STOCK_QUOTES_RAW (
 );
 
 
+
 4. Running the Data Producer
 
 The producer script simulates a real-time data feed. It must run continuously in a separate terminal.
@@ -98,6 +100,7 @@ pip install -r requirements.txt
 
 # Run the producer
 python infra/producer/producer.py
+
 
 
 You should see logs indicating data is being pushed to the stock-quotes topic.
@@ -123,6 +126,7 @@ dbt deps
 dbt run
 
 
+
 Expected Output: Completed successfully for Silver and Gold models.
 
 7. Visualization (Power BI)
@@ -141,77 +145,21 @@ Data Modeling: Ensure relationships are set to "Both" directions for cross-filte
 
 🛠️ Tech Stack Details
 
-Component
+Language: Python 3.9+ (Used for Producer scripts & Airflow DAGs)
 
-Technology
+Containerization: Docker 24.0+ (Microservices orchestration)
 
-Version
+Streaming: Apache Kafka 7.4 (Distributed event streaming)
 
-Description
+Orchestration: Apache Airflow 2.9 (Workflow scheduling & monitoring)
 
-Language
+Storage: MinIO Latest (S3-compatible object storage - Bronze Lake)
 
-Python
+Warehouse: Snowflake Enterprise (Cloud Data Warehouse)
 
-3.9+
+Transformation: dbt Core 1.8 (SQL-based transformations)
 
-Used for Producer scripts & Airflow DAGs
-
-Containerization
-
-Docker
-
-24.0+
-
-Microservices orchestration
-
-Streaming
-
-Apache Kafka
-
-7.4
-
-Distributed event streaming
-
-Orchestration
-
-Apache Airflow
-
-2.9
-
-Workflow scheduling & monitoring
-
-Storage
-
-MinIO
-
-Latest
-
-S3-compatible object storage (Bronze Lake)
-
-Warehouse
-
-Snowflake
-
-Enterprise
-
-Cloud Data Warehouse
-
-Transformation
-
-dbt Core
-
-1.8
-
-SQL-based transformations
-
-BI
-
-Power BI
-
-Desktop
-
-Dashboarding & Analytics
+BI: Power BI Desktop (Dashboarding & Analytics)
 
 💡 Troubleshooting & Key Learnings
 
