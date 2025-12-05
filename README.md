@@ -155,59 +155,21 @@ Data Modeling: Ensure relationships are set to "Both" directions for cross-filte
 
 🛠️ Tech Stack Details
 
-Category
+Language: Python 3.9+ (Producer scripts & Airflow DAGs)
 
-Technology
+Containerization: Docker 24.0+ (Microservices orchestration)
 
-Description
+Streaming: Apache Kafka 7.4 (Distributed event streaming)
 
-Language
+Orchestration: Apache Airflow 2.9 (Workflow scheduling & monitoring)
 
-Python 3.9+
+Storage: MinIO (S3-compatible object storage for Bronze Lake)
 
-Producer scripts & Airflow DAGs
+Warehouse: Snowflake (Cloud Data Warehouse)
 
-Containerization
+Transformation: dbt Core 1.8 (SQL-based transformations)
 
-Docker 24.0+
-
-Microservices orchestration
-
-Streaming
-
-Apache Kafka 7.4
-
-Distributed event streaming
-
-Orchestration
-
-Apache Airflow 2.9
-
-Workflow scheduling & monitoring
-
-Storage
-
-MinIO
-
-S3-compatible object storage (Bronze Lake)
-
-Warehouse
-
-Snowflake
-
-Cloud Data Warehouse
-
-Transformation
-
-dbt Core 1.8
-
-SQL-based transformations
-
-BI
-
-Power BI Desktop
-
-Dashboarding & Analytics
+BI: Power BI Desktop (Dashboarding & Analytics)
 
 💡 Troubleshooting & Key Learnings
 
