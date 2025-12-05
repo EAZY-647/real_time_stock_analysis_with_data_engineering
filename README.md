@@ -1,115 +1,233 @@
-📈 Real-Time Stock Market Data Engineering Project
+# 📈 End-to-End Real-Time Stock Market Data Engineering Project
 
-This project delivers a real-time, end-to-end data engineering pipeline for ingesting, processing, transforming, and visualizing live stock market data using a fully containerized event-driven architecture. The system reduces data latency from hours → seconds by replacing batch ETL with modern streaming and ELT patterns.
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)
+![Docker](https://img.shields.io/badge/Docker-24.0%2B-2496ED?logo=docker)
+![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-7.4-231F20?logo=apachekafka)
+![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-2.9-017CEE?logo=apacheairflow)
+![Snowflake](https://img.shields.io/badge/Snowflake-Enterprise-29B5E8?logo=snowflake)
+![dbt](https://img.shields.io/badge/dbt-Core%201.8-FF694B?logo=dbt)
+![Power BI](https://img.shields.io/badge/Power%20BI-Desktop-F2C811?logo=powerbi)
 
-🏗️ Architecture Overview
+## 📖 Executive Summary
 
-Data Flow (High-Level):
+This project implements a scalable, fault-tolerant data engineering pipeline capable of ingesting, processing, and visualizing real-time stock market data.
 
-Extraction: Python producer polls Finnhub API for real-time stock quotes.
+Traditional batch-based ETL pipelines often suffer from data latency, making them unsuitable for intraday financial analysis. This solution replaces batch processing with a modern **Event-Driven Architecture (ELT)** to reduce data latency from hours to seconds.
 
-Streaming Buffer: Events are pushed into Apache Kafka.
+The system streams live stock data from the **Finnhub API** into **Apache Kafka**, orchestrates loading into a **MinIO Data Lake** via **Apache Airflow**, warehouses the data in **Snowflake**, transforms it using **dbt**, and visualizes volatility metrics in a real-time **Power BI** dashboard.
 
-Orchestration: Apache Airflow triggers a DAG every minute consuming Kafka messages.
+---
 
-Data Lake (Bronze): Raw JSON is stored in MinIO (S3).
+## 🏗️ System Architecture
 
-Data Warehouse: Airflow loads files into Snowflake using COPY INTO.
+The pipeline follows a microservices architecture orchestrated by Docker Containers.
 
-Transformations: dbt parses JSON → Silver tables → Gold KPIs.
+### Data Flow Breakdown
+1.  **Extraction:** The Producer Service polls the **Finnhub API** for stock quotes (Apple, Amazon, Google, Microsoft, Tesla).
+2.  **Buffering:** Data is pushed to **Apache Kafka**, acting as a fault-tolerant buffer to handle traffic spikes.
+3.  **Orchestration:** **Apache Airflow** triggers a DAG every minute to consume data from Kafka.
+4.  **Staging (Bronze):** Raw JSON files are stored in **MinIO** (S3-compatible object storage) as an immutable Data Lake.
+5.  **Loading:** Airflow loads the JSON files into **Snowflake** using internal stages and the `COPY INTO` command.
+6.  **Transformation (Silver/Gold):** **dbt** executes SQL models to parse the JSON (Silver) and calculate KPIs like volatility (Gold).
+7.  **Reporting:** **Power BI** queries the Gold tables via DirectQuery for live visualization.
 
-Visualization: Power BI (DirectQuery) displays real-time dashboards.
+---
 
-📂 Project Structure
-├── dbt_stocks/              # dbt project (silver & gold models)
-├── infra/                   # Docker infrastructure
-│   ├── docker-compose.yml   # Airflow, Kafka, Zookeeper, MinIO
-│   ├── producer/            # Real-time API → Kafka producer
-│   └── dags/                # Airflow DAGs
-└── requirements.txt         # Python dependencies
+## 📂 Project Structure
 
-🚀 Setup Guide
-1️⃣ Requirements
+```bash
+├── dbt_stocks/             # dbt Project (Transformation Layer)
+│   ├── dbt_project.yml     # dbt configuration
+│   ├── models/
+│   │   ├── bronze/         # Sources definition (Snowflake Raw Tables)
+│   │   ├── silver/         # SQL logic to parse JSON & deduplicate
+│   │   └── gold/           # Analytical Views (KPIs, Charts)
+├── infra/                  # Infrastructure as Code (Docker)
+│   ├── docker-compose.yml  # Blueprint for Airflow, Kafka, Zookeeper, MinIO
+│   ├── producer/           # Python script for API -> Kafka ingestion
+│   └── dags/               # Airflow DAGs (minio_to_snowflake.py)
+└── requirements.txt        # Python dependencies for the producer
 
-Docker Desktop (≥4GB RAM)
+🚀 Getting Started
 
-Python 3.9+
+1. Prerequisites
 
-Snowflake account (free trial OK)
+Ensure you have the following installed/configured:
 
-Finnhub API Key
+Docker Desktop: Allocated with at least 4GB RAM (Linux containers mode).
 
-2️⃣ Start Infrastructure (Kafka, Airflow, MinIO)
+Python 3.9+: Installed locally for running the producer.
+
+Snowflake Account: A free trial account is sufficient.
+
+Finnhub API Key: Sign up for a free API key at Finnhub.io.
+
+2. Infrastructure Setup
+
+Navigate to the infra directory and spin up the containerized environment. This initializes Airflow (Webserver/Scheduler), Kafka, Zookeeper, and MinIO.
+
 cd infra
 docker-compose up -d
 
-3️⃣ Prepare Snowflake
+
+Wait for a few minutes for all health checks to pass.
+
+3. Snowflake Configuration
+
+Log into your Snowflake console (app.snowflake.com) and execute the following SQL to prepare the warehouse environment.
+Note: This setup uses ACCOUNTADMIN for simplicity to avoid permission issues.
+
+-- Create Warehouse, Database, and Schema
 USE ROLE ACCOUNTADMIN;
-CREATE WAREHOUSE IF NOT EXISTS COMPUTE_WH WITH WAREHOUSE_SIZE = 'XSMALL';
+CREATE WAREHOUSE IF NOT EXISTS COMPUTE_WH WITH WAREHOUSE_SIZE = 'XSMALL' AUTO_SUSPEND = 60 AUTO_RESUME = TRUE;
 CREATE DATABASE IF NOT EXISTS STOCKS_MDS;
 CREATE SCHEMA IF NOT EXISTS STOCKS_MDS.COMMON;
 
+-- Create Raw Table for JSON Data (Schema-on-Read)
 CREATE TABLE IF NOT EXISTS STOCKS_MDS.COMMON.BRONZE_STOCK_QUOTES_RAW (
-  V VARIANT
+    V VARIANT
 );
 
-4️⃣ Run the Real-Time Producer
+
+4. Running the Data Producer
+
+The producer script simulates a real-time data feed. It must run continuously in a separate terminal window.
+
+# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate    # Windows: venv\Scripts\activate
+
+# Windows:
+.\venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# Install requirements
 pip install -r requirements.txt
+
+# Run the producer
 python infra/producer/producer.py
 
-5️⃣ Airflow Orchestration
 
-Open: http://localhost:8080
+You should see logs indicating data is being pushed to the stock-quotes topic.
 
-Login: airflow / airflow
+5. Orchestration (Airflow)
 
-Unpause DAG: minio_to_snowflake
+Access the Airflow UI at http://localhost:8080.
 
-Runs every minute: Kafka → MinIO → Snowflake
+Username: airflow
 
-6️⃣ Transform Data with dbt
+Password: airflow
+
+Locate the minio_to_snowflake DAG.
+
+Unpause the DAG (toggle the switch on the left).
+
+It will run every minute, moving data from Kafka -> MinIO -> Snowflake.
+
+6. Transformation (dbt)
+
+Once raw data is populated in Snowflake, use dbt to clean and structure it.
+
 cd dbt_stocks
+
+# Install dbt dependencies
 dbt deps
+
+# Run the models
 dbt run
 
-7️⃣ Real-Time Dashboard (Power BI)
 
-Get Data → Snowflake
+Expected Output: Completed successfully for Silver and Gold models.
 
-Use DirectQuery mode
+7. Visualization (Power BI)
 
-Load:
+Open Power BI Desktop.
 
-GOLD_KPI
+Select Get Data -> Snowflake.
 
-GOLD_CANDLESTICK
+Enter your Snowflake Server URL (e.g., xy12345.us-east-1.aws.snowflakecomputing.com) and Warehouse (COMPUTE_WH).
 
-GOLD_TREECHART
+CRUCIAL: Select DirectQuery mode to ensure real-time updates.
 
-🛠️ Tech Stack
-Layer	Technology
-Streaming	Apache Kafka
-Orchestration	Apache Airflow
-Data Lake	MinIO (S3)
-Warehouse	Snowflake
-Transformations	dbt Core
-Dashboard	Power BI
-Language	Python 3.9+
-Infra	Docker
-💡 Key Learnings
+Import the GOLD_KPI, GOLD_CANDLESTICK, and GOLD_TREECHART views.
 
-Use host.docker.internal for container → host communication.
+Data Modeling: Ensure relationships are set to "Both" directions for cross-filtering.
 
-Snowflake PUT/COPY requires explicit roles (e.g., ACCOUNTADMIN).
+🛠️ Tech Stack Details
 
-Power BI slicers require “Edit Interactions” to avoid incorrect aggregation.
+Category
 
-🎥 Reference
+Technology
 
-This project is inspired by Data With Jay — adapted and extended for real-time processing.
+Description
+
+Language
+
+Python 3.9+
+
+Producer scripts & Airflow DAGs
+
+Containerization
+
+Docker 24.0+
+
+Microservices orchestration
+
+Streaming
+
+Apache Kafka 7.4
+
+Distributed event streaming
+
+Orchestration
+
+Apache Airflow 2.9
+
+Workflow scheduling & monitoring
+
+Storage
+
+MinIO
+
+S3-compatible object storage (Bronze Lake)
+
+Warehouse
+
+Snowflake
+
+Cloud Data Warehouse
+
+Transformation
+
+dbt Core 1.8
+
+SQL-based transformations
+
+BI
+
+Power BI Desktop
+
+Dashboarding & Analytics
+
+💡 Troubleshooting & Key Learnings
+
+Docker Networking:
+Airflow containers use the internal DNS host.docker.internal to communicate with services running on the host machine or other containers.
+
+Snowflake Permissions:
+The Python connector inside Airflow requires explicit Role enforcement (role='ACCOUNTADMIN') to perform PUT operations into the staging area if default user roles are restricted.
+
+Power BI Aggregations:
+When using KPI cards, ensure the "Slicer" visual interacts correctly with the cards by checking "Edit Interactions" format options to avoid summing up values for all stocks.
+
+🎥 Reference & Acknowledgements
+
+This project was built following the comprehensive tutorial by Data with Jay. The architectural patterns for integrating Airflow with MinIO and Snowflake were adapted from his guidance.
+
+Video: End-to-End Stock Market Data Engineering Project
+
+Channel: Data with Jay
 
 📝 License
 
-Licensed under MIT License — free for personal and commercial use.
+This project is open-source and free to use. Licensed under the MIT License.
